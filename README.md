@@ -113,7 +113,7 @@ completely normal, version-independent way to make a template show up.
 
 | Variable | What it's actually for | Example |
 |---|---|---|
-| Master Key | Encryption key for secrets stored in the database. Set once, **never** change it afterwards or you lose access to everything encrypted with it. Exactly 32 characters. | `openssl rand -base64 24 \| cut -c1-32` |
+| Master Key | Encryption key for secrets stored in the database. Set once, **never** change it afterwards or you lose access to everything encrypted with it. Exactly 32 characters. **⚠️ Also paste this exact same value into "Post Arguments" (Extra Parameters, near the bottom of Add Container) replacing the placeholder in `--masterkey "..."` — a known ZITADEL bug means the environment variable alone is not reliably read, and the container will crash-loop with `no master key provided` if you skip this.** | `openssl rand -base64 24 \| cut -c1-32` |
 | External Domain | The domain your *users* type into their browser — must match your reverse proxy's configured domain. | `sso.example.com` |
 | External Port | The *public-facing* port (what's after the domain from the outside), not the container's internal port. Almost always `443`. | `443` |
 | External Secure (HTTPS) | Tell ZITADEL whether the outside world reaches it over HTTPS. Keep `true` unless you're doing a plain-HTTP local test. | `true` |
@@ -293,7 +293,7 @@ versión de hacer que una plantilla aparezca.
 
 | Variable | Para qué sirve de verdad | Ejemplo |
 |---|---|---|
-| Master Key | Clave de cifrado de los secretos guardados en la base de datos. Se pone una vez y **nunca** se cambia después, o pierdes acceso a todo lo cifrado con ella. Exactamente 32 caracteres. | `openssl rand -base64 24 \| cut -c1-32` |
+| Master Key | Clave de cifrado de los secretos guardados en la base de datos. Se pone una vez y **nunca** se cambia después, o pierdes acceso a todo lo cifrado con ella. Exactamente 32 caracteres. **⚠️ Pega también ese mismo valor en "Post Arguments" (Extra Parameters, cerca del final de Add Container) sustituyendo el placeholder en `--masterkey "..."` — un bug conocido de Zitadel hace que la variable de entorno sola no se lea de forma fiable, y el contenedor se reiniciará en bucle con `no master key provided` si te saltas esto.** | `openssl rand -base64 24 \| cut -c1-32` |
 | External Domain | El dominio que escriben tus *usuarios* en el navegador — debe coincidir con el dominio configurado en tu proxy inverso. | `sso.example.com` |
 | External Port | El puerto *de cara al público* (lo que va después del dominio, visto desde fuera), no el puerto interno del contenedor. Casi siempre `443`. | `443` |
 | External Secure (HTTPS) | Le dice a Zitadel si el mundo exterior le llega por HTTPS. Déjalo en `true` salvo que sea una prueba local en HTTP plano. | `true` |
