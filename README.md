@@ -92,6 +92,37 @@ completely normal, version-independent way to make a template show up.
    reads the token the core container wrote on its first start.
 6. Start `zitadel-login` and confirm it comes up healthy.
 
+### 🖥️ First login: two different web addresses, not one
+
+This trips up almost everyone the first time, technical or not, so read this before you go looking
+for a "dashboard" and can't find it.
+
+There are **two completely separate pages**, and mixing them up is the most common point of
+confusion:
+
+| Address | What it actually is |
+|---|---|
+| `https://your-domain/ui/v2/login` | Just the **sign-in door**: type your email, type your password. That's all it does. |
+| `https://your-domain/ui/console` | The actual **admin panel** — where you manage everything: users, organizations, and the connections to Zabbix/WordPress/etc. |
+
+If you type your address into the browser and it takes you straight to the sign-in door, log in
+normally — but once you're done, **you'll land on a plain "you're signed in" page that goes
+nowhere by itself.** That's expected. It is *not* the admin panel, and there is no button on it
+that takes you there.
+
+**To reach the actual admin panel, type this address directly into your browser:**
+```
+https://your-domain/ui/console
+```
+(replacing `your-domain` with your own External Domain). Since you're already signed in, it should
+open straight away, or ask you to confirm the account once. This is where you'll do everything
+described in this README from now on: create the SSO connections to Zabbix, WordPress, etc.
+
+**Default first-time login**, if you haven't changed it yet:
+- Username: `zitadel-admin@zitadel.<your External Domain>` — note the extra `zitadel.` piece
+  glued in front of your own domain, that's not a typo, it's ZITADEL's own default naming.
+- Password: `Password1!`
+
 ### ⚙️ Configuration reference
 
 > **Why do External Domain/Port/Secure and the four `*URLV2` fields repeat the same information?**
@@ -286,6 +317,38 @@ versión de hacer que una plantilla aparezca.
    apuntando exactamente a la misma ruta de host que usaste en el contenedor `zitadel` — así es
    como lee el token que el contenedor principal escribió en su primer arranque.
 6. Arranca `zitadel-login` y confirma que queda healthy.
+
+### 🖥️ Primer inicio de sesión: dos direcciones web distintas, no una sola
+
+Esto confunde a casi todo el mundo la primera vez, seas informático o no, así que lee esto antes
+de ponerte a buscar un "panel" y no encontrarlo.
+
+Hay **dos páginas completamente separadas**, y confundirlas es el lío más habitual:
+
+| Dirección | Qué es realmente |
+|---|---|
+| `https://tu-dominio/ui/v2/login` | Solo la **puerta de entrada**: escribes tu correo, escribes tu contraseña. Eso es todo lo que hace. |
+| `https://tu-dominio/ui/console` | El **panel de administración** de verdad — donde gestionas todo: usuarios, organizaciones, y las conexiones con Zabbix/WordPress/etc. |
+
+Si escribes tu dirección en el navegador y te lleva directo a la puerta de entrada, inicia sesión
+con normalidad — pero al terminar, **acabarás en una página sencilla de "ya has iniciado sesión"
+que no te lleva a ningún sitio por sí sola.** Es normal. Esa página *no es* el panel de
+administración, y no tiene ningún botón que te lleve ahí.
+
+**Para llegar al panel de administración de verdad, escribe esta dirección directamente en el
+navegador:**
+```
+https://tu-dominio/ui/console
+```
+(cambiando `tu-dominio` por tu propio External Domain). Como ya tienes sesión iniciada, debería
+abrirse directamente, o pedirte confirmar la cuenta una vez. Aquí es donde harás a partir de ahora
+todo lo que describe este README: crear las conexiones de SSO con Zabbix, WordPress, etc.
+
+**Inicio de sesión por defecto**, si todavía no lo has cambiado:
+- Usuario: `zitadel-admin@zitadel.<tu External Domain>` — fíjate en el trozo `zitadel.` extra
+  pegado delante de tu propio dominio, no es un error tipográfico, es el nombre por defecto que
+  pone el propio Zitadel.
+- Contraseña: `Password1!`
 
 ### ⚙️ Referencia de configuración
 
