@@ -1,6 +1,6 @@
 <div align="center">
 
-# unraid-zitadel-templates
+# Unraid Zitadel Templates
 
 *Working Unraid Community Applications templates for ZITADEL v4 — core + the login UI it actually needs*
 
