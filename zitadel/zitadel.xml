@@ -1,0 +1,80 @@
+<?xml version="1.0"?>
+<Container version="2">
+  <Name>zitadel</Name>
+  <Repository>ghcr.io/zitadel/zitadel:latest</Repository>
+  <Registry>https://github.com/zitadel/zitadel/pkgs/container/zitadel</Registry>
+  <Network>bridge</Network>
+  <MyIP/>
+  <Shell>sh</Shell>
+  <Privileged>false</Privileged>
+  <Support>https://github.com/Nebur692/unraid-zitadel-templates/issues</Support>
+  <Project>https://github.com/zitadel/zitadel</Project>
+  <Overview>ZITADEL is a self-hosted identity infrastructure platform: SSO (OIDC/SAML), MFA, and user management for your own apps and services.&#13;
+&#13;
+This template deploys the ZITADEL v4 core/API service only. Since v4, the interactive login pages were split into a separate service (zitadel-login) that MUST be deployed alongside this one, or logging in will fail with a 404 on /ui/v2/login/login. See the companion "zitadel-login" template from the same repository.&#13;
+&#13;
+Requires an external Postgres 14+ database (not included in this template) and a 32-character Master Key.&#13;
+&#13;
+Default admin login after first start: zitadel-admin@zitadel.&lt;your external domain&gt; / Password1! — you will be asked to change this password on first login (unless you disable that below).&#13;
+&#13;
+Full setup guide: https://github.com/Nebur692/unraid-zitadel-templates</Overview>
+  <Category>Security: Network:Management</Category>
+  <WebUI>http://[IP]:[PORT:8080]/ui/console</WebUI>
+  <TemplateURL>https://raw.githubusercontent.com/Nebur692/unraid-zitadel-templates/main/zitadel/zitadel.xml</TemplateURL>
+  <Icon>https://raw.githubusercontent.com/Nebur692/unraid-zitadel-templates/main/zitadel/zitadel-icon.png</Icon>
+  <ExtraParams>--restart unless-stopped</ExtraParams>
+  <PostArgs>start-from-init</PostArgs>
+  <DonateText>Support this project</DonateText>
+  <DonateLink>https://ko-fi.com/nebur69265723</DonateLink>
+  <Requires>An external PostgreSQL 14+ database, reachable from this container, plus the companion "zitadel-login" template for the interactive login pages to work.</Requires>
+
+  <Config Name="Master Key" Target="ZITADEL_MASTERKEY" Default="" Mode="" Description="REQUIRED. Exactly 32 characters, used to encrypt secrets at rest. Generate once, keep it safe, never change it after first start (you will lose access to encrypted data). Example: openssl rand -base64 24 | cut -c1-32" Type="Variable" Display="always" Required="true" Mask="true"></Config>
+
+  <Config Name="External Domain" Target="ZITADEL_EXTERNALDOMAIN" Default="localhost" Mode="" Description="REQUIRED. The public domain users will use to reach ZITADEL (e.g. sso.example.com), without protocol or port. Must match what your reverse proxy serves." Type="Variable" Display="always" Required="true" Mask="false">localhost</Config>
+
+  <Config Name="External Port" Target="ZITADEL_EXTERNALPORT" Default="443" Mode="" Description="The public-facing port your reverse proxy exposes ZITADEL on (usually 443 for HTTPS). This is NOT the container's internal port." Type="Variable" Display="always" Required="true" Mask="false">443</Config>
+
+  <Config Name="External Secure (HTTPS)" Target="ZITADEL_EXTERNALSECURE" Default="true" Mode="" Description="Set to true if users reach ZITADEL over HTTPS (normal case, e.g. behind Nginx Proxy Manager with a valid certificate). Set to false only for plain-HTTP test setups." Type="Variable" Display="always" Required="true" Mask="false">true</Config>
+
+  <Config Name="TLS Enabled (container-internal)" Target="ZITADEL_TLS_ENABLED" Default="false" Mode="" Description="Whether ZITADEL itself terminates TLS inside the container. Leave false if a reverse proxy (Nginx Proxy Manager, Traefik, Caddy...) handles HTTPS in front of it, which is the recommended setup." Type="Variable" Display="always" Required="false" Mask="false">false</Config>
+
+  <Config Name="Database Postgres Host" Target="ZITADEL_DATABASE_POSTGRES_HOST" Default="" Mode="" Description="REQUIRED. Hostname or IP of your external Postgres server/container." Type="Variable" Display="always" Required="true" Mask="false"></Config>
+
+  <Config Name="Database Postgres Port" Target="ZITADEL_DATABASE_POSTGRES_PORT" Default="5432" Mode="" Description="Postgres port." Type="Variable" Display="always" Required="true" Mask="false">5432</Config>
+
+  <Config Name="Database Name" Target="ZITADEL_DATABASE_POSTGRES_DATABASE" Default="zitadel" Mode="" Description="Database name ZITADEL will use/create." Type="Variable" Display="always" Required="false" Mask="false">zitadel</Config>
+
+  <Config Name="Database Admin Username" Target="ZITADEL_DATABASE_POSTGRES_ADMIN_USERNAME" Default="postgres" Mode="" Description="Username with rights to create the app role/database on first start. IMPORTANT: if your Postgres container was created with a custom POSTGRES_USER (instead of leaving it as the default 'postgres'), that custom user IS your superuser — put that same username here, not 'postgres'. Using the wrong one causes a password authentication failed / restart loop." Type="Variable" Display="always" Required="true" Mask="false">postgres</Config>
+
+  <Config Name="Database Admin Password" Target="ZITADEL_DATABASE_POSTGRES_ADMIN_PASSWORD" Default="" Mode="" Description="Password for the admin username above." Type="Variable" Display="always" Required="true" Mask="true"></Config>
+
+  <Config Name="Database Admin SSL Mode" Target="ZITADEL_DATABASE_POSTGRES_ADMIN_SSL_MODE" Default="disable" Mode="" Description="SSL mode for the admin connection (disable/require/verify-ca/verify-full)." Type="Variable" Display="advanced" Required="false" Mask="false">disable</Config>
+
+  <Config Name="Database App Username" Target="ZITADEL_DATABASE_POSTGRES_USER_USERNAME" Default="zitadel" Mode="" Description="Username ZITADEL uses day-to-day (created automatically on first start using the admin credentials above, unless it's the same as the admin username)." Type="Variable" Display="always" Required="false" Mask="false">zitadel</Config>
+
+  <Config Name="Database App Password" Target="ZITADEL_DATABASE_POSTGRES_USER_PASSWORD" Default="" Mode="" Description="Password for the day-to-day database user above." Type="Variable" Display="always" Required="false" Mask="true"></Config>
+
+  <Config Name="Database App SSL Mode" Target="ZITADEL_DATABASE_POSTGRES_USER_SSL_MODE" Default="disable" Mode="" Description="SSL mode for the app connection (disable/require/verify-ca/verify-full)." Type="Variable" Display="advanced" Required="false" Mask="false">disable</Config>
+
+  <Config Name="Require Password Change On First Login" Target="ZITADEL_FIRSTINSTANCE_ORG_HUMAN_PASSWORDCHANGEREQUIRED" Default="true" Mode="" Description="Whether the default admin account must change its password on first login. Recommended: true. Only has effect on the very first start." Type="Variable" Display="advanced" Required="false" Mask="false">true</Config>
+
+  <Config Name="Login Client PAT Path (bootstrap)" Target="ZITADEL_FIRSTINSTANCE_LOGINCLIENTPATPATH" Default="/zitadel/bootstrap/login-client.pat" Mode="" Description="CRITICAL, do not change. On first start, ZITADEL writes here the access token that the companion zitadel-login container needs to function. Must point inside the shared bootstrap volume below." Type="Variable" Display="advanced" Required="true" Mask="false">/zitadel/bootstrap/login-client.pat</Config>
+
+  <Config Name="Login Client Machine Username" Target="ZITADEL_FIRSTINSTANCE_ORG_LOGINCLIENT_MACHINE_USERNAME" Default="login-client" Mode="" Description="Do not change unless you know why. Internal service-account username created on first start for the login UI to authenticate as." Type="Variable" Display="advanced" Required="false" Mask="false">login-client</Config>
+
+  <Config Name="Login Client Machine Name" Target="ZITADEL_FIRSTINSTANCE_ORG_LOGINCLIENT_MACHINE_NAME" Default="Automatically Initialized IAM_LOGIN_CLIENT" Mode="" Description="Display name for the internal login-client service account." Type="Variable" Display="advanced" Required="false" Mask="false">Automatically Initialized IAM_LOGIN_CLIENT</Config>
+
+  <Config Name="Login V2 Required" Target="ZITADEL_DEFAULTINSTANCE_FEATURES_LOGINV2_REQUIRED" Default="true" Mode="" Description="Do not change: v4 always requires the new login UI. Kept visible for transparency." Type="Variable" Display="advanced" Required="false" Mask="false">true</Config>
+
+  <Config Name="Login V2 Base URI" Target="ZITADEL_DEFAULTINSTANCE_FEATURES_LOGINV2_BASEURI" Default="" Mode="" Description="REQUIRED. Full public URL of the login pages, e.g. https://sso.example.com/ui/v2/login/ — must match your External Domain/Port/Secure settings above, with the trailing slash." Type="Variable" Display="always" Required="true" Mask="false"></Config>
+
+  <Config Name="OIDC Default Login URL V2" Target="ZITADEL_OIDC_DEFAULTLOGINURLV2" Default="" Mode="" Description="REQUIRED. e.g. https://sso.example.com/ui/v2/login/login?authRequest=" Type="Variable" Display="always" Required="true" Mask="false"></Config>
+
+  <Config Name="OIDC Default Logout URL V2" Target="ZITADEL_OIDC_DEFAULTLOGOUTURLV2" Default="" Mode="" Description="REQUIRED. e.g. https://sso.example.com/ui/v2/login/logout?post_logout_redirect=" Type="Variable" Display="always" Required="true" Mask="false"></Config>
+
+  <Config Name="SAML Default Login URL V2" Target="ZITADEL_SAML_DEFAULTLOGINURLV2" Default="" Mode="" Description="REQUIRED if you plan to use SAML (e.g. Zabbix). e.g. https://sso.example.com/ui/v2/login/login?samlRequest=" Type="Variable" Display="always" Required="false" Mask="false"></Config>
+
+  <Config Name="Bootstrap Volume (shared with zitadel-login)" Target="/zitadel/bootstrap" Default="/mnt/user/appdata/zitadel/bootstrap" Mode="rw" Description="Shared with the zitadel-login container (mounted read-only there) so it can read the login-client.pat token written here on first start. Both templates must point at the exact same host path." Type="Path" Display="always" Required="true" Mask="false">/mnt/user/appdata/zitadel/bootstrap</Config>
+
+  <Config Name="Web UI / API Port" Target="8080" Default="8080" Mode="tcp" Description="Internal port. Put your reverse proxy in front of this — do not expose it directly to the internet without TLS." Type="Port" Display="always" Required="true" Mask="false">8080</Config>
+</Container>
