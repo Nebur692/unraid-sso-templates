@@ -15,6 +15,8 @@ This template deploys the ZITADEL v4 core/API service only. Since v4, the intera
 &#13;
 Requires an external Postgres 14+ database (not included in this template) and a 32-character Master Key.&#13;
 &#13;
+IMPORTANT: besides filling in the "Master Key" field below, you MUST also replace the placeholder in "Post Arguments" (under Extra Parameters, near the bottom of the Add Container page) with that exact same key — ZITADEL has a known bug where the environment variable alone isn't reliably read with the start-from-init command, and the container will crash-loop with "no master key provided" if you skip this.&#13;
+&#13;
 Default admin login after first start: zitadel-admin@zitadel.&lt;your external domain&gt; / Password1! — you will be asked to change this password on first login (unless you disable that below).&#13;
 &#13;
 Full setup guide: https://github.com/Nebur692/unraid-zitadel-templates</Overview>
@@ -23,12 +25,12 @@ Full setup guide: https://github.com/Nebur692/unraid-zitadel-templates</Overview
   <TemplateURL>https://raw.githubusercontent.com/Nebur692/unraid-zitadel-templates/main/zitadel/zitadel.xml</TemplateURL>
   <Icon>https://raw.githubusercontent.com/Nebur692/unraid-zitadel-templates/main/zitadel/zitadel-icon.png</Icon>
   <ExtraParams>--restart unless-stopped</ExtraParams>
-  <PostArgs>start-from-init</PostArgs>
+  <PostArgs>start-from-init --masterkey "MasterkeyNeedsToHave32Characters"</PostArgs>
   <DonateText>Support this project</DonateText>
   <DonateLink>https://ko-fi.com/nebur69265723</DonateLink>
   <Requires>An external PostgreSQL 14+ database, reachable from this container, plus the companion "zitadel-login" template for the interactive login pages to work.</Requires>
 
-  <Config Name="Master Key" Target="ZITADEL_MASTERKEY" Default="" Mode="" Description="REQUIRED. Exactly 32 characters, used to encrypt secrets at rest. Generate once, keep it safe, never change it after first start (you will lose access to encrypted data). Example: openssl rand -base64 24 | cut -c1-32" Type="Variable" Display="always" Required="true" Mask="true"></Config>
+  <Config Name="Master Key" Target="ZITADEL_MASTERKEY" Default="" Mode="" Description="REQUIRED. Exactly 32 characters, used to encrypt secrets at rest. Generate once, keep it safe, never change it after first start (you will lose access to encrypted data). Example: openssl rand -base64 24 | cut -c1-32. IMPORTANT: ZITADEL has a known bug where this environment variable alone is not always read with the start-from-init command — you MUST also replace the placeholder in Post Arguments (Extra Parameters section) with this exact same value, or the container will crash-loop with 'no master key provided'." Type="Variable" Display="always" Required="true" Mask="true"></Config>
 
   <Config Name="External Domain" Target="ZITADEL_EXTERNALDOMAIN" Default="localhost" Mode="" Description="REQUIRED. The public domain users will use to reach ZITADEL (e.g. sso.example.com), without protocol or port. Must match what your reverse proxy serves." Type="Variable" Display="always" Required="true" Mask="false">localhost</Config>
 
