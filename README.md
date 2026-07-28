@@ -43,27 +43,37 @@ names and required values are taken straight from there.
 
 ### 📦 Installation
 
-1. **Add this repository** in **Docker → Add Container → scroll down → Template repositories**:
-   ```
-   https://raw.githubusercontent.com/Nebur692/unraid-zitadel-templates/main/zitadel/zitadel.xml
-   https://raw.githubusercontent.com/Nebur692/unraid-zitadel-templates/main/zitadel-login/zitadel-login.xml
-   ```
-2. You need an external **PostgreSQL 14+** container first (not included — any standard Postgres
+This does **not** rely on finding a "Template repositories" field — that option exists in some
+Unraid versions/locations and not others, so these steps work regardless of what your specific
+install shows you.
+
+1. **Set up an external PostgreSQL 14+ container first** (not included — any standard Postgres
    template works). Leave `POSTGRES_USER` at its default (`postgres`) unless you have a specific
    reason to change it — see the warning in the `zitadel` template's *Database Admin Username*
-   field if you do.
-3. **Add Container → zitadel** from the template dropdown. Fill in at minimum: Master Key (32
-   random characters, generate once and keep it — you cannot change it later without losing
-   encrypted data), External Domain, Database connection details, and the four
-   `*_LOGINURLV2`/`LOGINV2_BASEURI` fields (all derived from your External Domain/Port — the
-   description on each field shows the exact format).
-4. **Add Container → zitadel-login** from the template dropdown. Fill in `ZITADEL_API_URL` (the
-   `zitadel` container's internal IP and port, e.g. `http://192.168.1.50:8080`) and
-   `CUSTOM_REQUEST_HEADERS` (your domain). Point its **Bootstrap Volume** at the exact same host
-   path you used for the `zitadel` container — this is how it reads the token the core container
-   generates on its first start.
-5. Start `zitadel` **first**, confirm it logs `setup completed` with no errors, **then** start
-   `zitadel-login`.
+   field below if you do.
+2. **Docker → Add Container.** Under **Repository**, type `ghcr.io/zitadel/zitadel:latest`. Give
+   the container a name (e.g. `zitadel`), then add each variable/port/path listed in
+   [`zitadel/zitadel.xml`](zitadel/zitadel.xml) using Unraid's "Add another Path, Port, Variable,
+   Label" buttons — the `Name`/`Target`/`Default`/`Description` of every `<Config>` entry in that
+   file tells you exactly what to add and what it does. At minimum you need: Master Key (32 random
+   characters, generate once and keep it — you cannot change it later without losing encrypted
+   data), External Domain, the database connection fields, and the four
+   `*_LOGINURLV2`/`LOGINV2_BASEURI` variables (derived from your External Domain/Port).
+   *(If your Unraid does show a way to add a custom template repository URL — often under Docker's
+   own settings, sometimes as a small "Template repositories" text box — you can instead point it
+   at `https://raw.githubusercontent.com/Nebur692/unraid-zitadel-templates/main/zitadel/zitadel.xml`
+   and `.../zitadel-login/zitadel-login.xml` to get both forms pre-filled automatically. Purely a
+   shortcut — everything below works the same either way.)*
+3. Start it, and confirm the container's log shows `setup completed` with no errors before
+   continuing.
+4. **Docker → Add Container** again. Repository: `ghcr.io/zitadel/zitadel-login:latest`, name it
+   e.g. `zitadel-login`, and add each variable/port/path from
+   [`zitadel-login/zitadel-login.xml`](zitadel-login/zitadel-login.xml) the same way. Fill in
+   `ZITADEL_API_URL` (the `zitadel` container's internal IP and port, e.g.
+   `http://192.168.1.50:8080`) and `CUSTOM_REQUEST_HEADERS` (your domain). Point its **Bootstrap
+   Volume** at the exact same host path you used for the `zitadel` container — this is how it
+   reads the token the core container wrote on its first start.
+5. Start `zitadel-login` and confirm it comes up healthy.
 
 ### ⚙️ Reverse proxy configuration (required)
 
@@ -143,27 +153,39 @@ nombres de variable y los valores requeridos salen de ahí directamente.
 
 ### 📦 Instalación
 
-1. **Añade este repositorio** en **Docker → Add Container → baja hasta Template repositories**:
-   ```
-   https://raw.githubusercontent.com/Nebur692/unraid-zitadel-templates/main/zitadel/zitadel.xml
-   https://raw.githubusercontent.com/Nebur692/unraid-zitadel-templates/main/zitadel-login/zitadel-login.xml
-   ```
-2. Necesitas primero un contenedor externo de **PostgreSQL 14+** (no incluido — cualquier plantilla
+Esto **no depende** de encontrar un campo "Template repositories" — esa opción existe en algunas
+versiones/ubicaciones de Unraid y en otras no, así que estos pasos funcionan da igual lo que
+muestre tu instalación concreta.
+
+1. **Monta primero un contenedor externo de PostgreSQL 14+** (no incluido — cualquier plantilla
    estándar de Postgres vale). Deja `POSTGRES_USER` en su valor por defecto (`postgres`) salvo que
    tengas una razón concreta para cambiarlo — mira el aviso en el campo *Database Admin Username*
-   de la plantilla `zitadel` si lo haces.
-3. **Add Container → zitadel** desde el desplegable de plantillas. Rellena como mínimo: Master Key
-   (32 caracteres aleatorios, genéralo una vez y guárdalo — no se puede cambiar después sin perder
-   datos cifrados), External Domain, los datos de conexión a la base de datos, y los cuatro campos
-   `*_LOGINURLV2`/`LOGINV2_BASEURI` (todos derivados de tu External Domain/Port — la descripción de
-   cada campo muestra el formato exacto).
-4. **Add Container → zitadel-login** desde el desplegable de plantillas. Rellena `ZITADEL_API_URL`
-   (la IP y puerto internos del contenedor `zitadel`, p.ej. `http://192.168.1.50:8080`) y
-   `CUSTOM_REQUEST_HEADERS` (tu dominio). Pon su **Bootstrap Volume** apuntando exactamente a la
-   misma ruta de host que usaste en el contenedor `zitadel` — así es como lee el token que el
-   contenedor principal genera en su primer arranque.
-5. Arranca **primero** `zitadel`, confirma que registra `setup completed` sin errores, **luego**
-   arranca `zitadel-login`.
+   de la plantilla `zitadel` más abajo si lo haces.
+2. **Docker → Add Container.** En **Repository**, escribe `ghcr.io/zitadel/zitadel:latest`. Ponle
+   un nombre al contenedor (p.ej. `zitadel`), y añade cada variable/puerto/ruta que aparece en
+   [`zitadel/zitadel.xml`](zitadel/zitadel.xml) usando los botones "Add another Path, Port,
+   Variable, Label" de Unraid — el `Name`/`Target`/`Default`/`Description` de cada entrada
+   `<Config>` de ese fichero te dice exactamente qué añadir y para qué sirve. Como mínimo
+   necesitas: Master Key (32 caracteres aleatorios, genéralo una vez y guárdalo — no se puede
+   cambiar después sin perder datos cifrados), External Domain, los campos de conexión a la base de
+   datos, y las cuatro variables `*_LOGINURLV2`/`LOGINV2_BASEURI` (derivadas de tu External
+   Domain/Port).
+   *(Si tu Unraid sí muestra una forma de añadir una URL de repositorio de plantillas
+   personalizado — a veces dentro de los propios ajustes de Docker, a veces como un pequeño campo
+   de texto "Template repositories" — puedes apuntarlo en su lugar a
+   `https://raw.githubusercontent.com/Nebur692/unraid-zitadel-templates/main/zitadel/zitadel.xml`
+   y `.../zitadel-login/zitadel-login.xml` para que ambos formularios se rellenen solos. Es solo un
+   atajo — todo lo demás funciona igual de una forma u otra.)*
+3. Arráncalo, y confirma que el log del contenedor muestra `setup completed` sin errores antes de
+   continuar.
+4. **Docker → Add Container** otra vez. Repository: `ghcr.io/zitadel/zitadel-login:latest`,
+   ponle un nombre como `zitadel-login`, y añade cada variable/puerto/ruta de
+   [`zitadel-login/zitadel-login.xml`](zitadel-login/zitadel-login.xml) de la misma forma. Rellena
+   `ZITADEL_API_URL` (la IP y puerto internos del contenedor `zitadel`, p.ej.
+   `http://192.168.1.50:8080`) y `CUSTOM_REQUEST_HEADERS` (tu dominio). Pon su **Bootstrap Volume**
+   apuntando exactamente a la misma ruta de host que usaste en el contenedor `zitadel` — así es
+   como lee el token que el contenedor principal escribió en su primer arranque.
+5. Arranca `zitadel-login` y confirma que queda healthy.
 
 ### ⚙️ Configuración del proxy inverso (obligatoria)
 
