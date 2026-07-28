@@ -162,6 +162,7 @@ described in this README from now on: create the SSO connections to Zabbix, Word
 | SAML Default Login URL V2 | Same idea, for SAML clients (e.g. Zabbix). Only needed if you'll use SAML. | `.../ui/v2/login/login?samlRequest=` |
 | Bootstrap Volume | A folder shared with `zitadel-login` (mounted read-only there) so it can read the token above. Both templates must point at the **exact same** host path. | `/mnt/user/appdata/zitadel/bootstrap` |
 | Web UI / API Port | Internal port. Put your reverse proxy in front — don't expose straight to the internet. | `8080` |
+| HTTP Client Deny List (SSRF protection) | ZITADEL refuses to call Action Target endpoints on private IP ranges by default — **this includes your whole home LAN** (`192.168.0.0/16`), so creating a Target pointing at any other container on your network fails with `Errors.Target.DeniedURL`. The default value here is ZITADEL's own stock deny list with just `192.168.0.0/16` removed — everything else (loopback, link-local, cloud metadata endpoints like `169.254.169.254`) stays blocked. Only add more ranges if you understand you're loosening SSRF protection. | see Default column |
 
 #### `zitadel-login`
 
@@ -219,6 +220,14 @@ needs to show the actual sign-in form.
   once and failed partway (e.g. wrote the DB rows but not the file), you must wipe the Postgres
   database clean and restart `zitadel` again for it to retry from scratch — fixing the
   permissions/variable first, then just restarting, changes nothing.
+- **Creating an Actions V2 Target fails with `[invalid_argument] Errors.Target.DeniedURL`**: by
+  default ZITADEL refuses to call webhook endpoints on private IP ranges as an SSRF protection —
+  this includes your entire home LAN (`192.168.0.0/16`). If you're building something that calls
+  back into your own network (e.g. a custom login-approval webhook), set the *HTTP Client Deny
+  List* variable above — its default value here already removes just `192.168.0.0/16` from
+  ZITADEL's stock list, keeping every other protected range (loopback, link-local, cloud metadata
+  endpoints) intact. This variable only takes effect on the `zitadel` core container, and requires
+  recreating it (a plain restart won't pick up a newly added environment variable).
 
 ### 💙 Support
 
@@ -390,6 +399,7 @@ todo lo que describe este README: crear las conexiones de SSO con Zabbix, WordPr
 | SAML Default Login URL V2 | La misma idea, para clientes SAML (p.ej. Zabbix). Solo hace falta si vas a usar SAML. | `.../ui/v2/login/login?samlRequest=` |
 | Bootstrap Volume | Una carpeta compartida con `zitadel-login` (montada de solo lectura ahí) para que pueda leer el token de arriba. Ambas plantillas deben apuntar a **exactamente la misma** ruta de host. | `/mnt/user/appdata/zitadel/bootstrap` |
 | Web UI / API Port | Puerto interno. Pon tu proxy inverso delante — no lo expongas directo a internet. | `8080` |
+| HTTP Client Deny List (protección SSRF) | Zitadel se niega por defecto a llamar a endpoints de Target en rangos de IP privados — **esto incluye toda tu red local** (`192.168.0.0/16`). Si estás construyendo algo que llame de vuelta a tu propia red (p.ej. un webhook propio de aprobación de login), pon la variable *HTTP Client Deny List* de arriba — su valor por defecto aquí ya quita solo `192.168.0.0/16` de la lista original de Zitadel, dejando intactos el resto de rangos protegidos (loopback, link-local, endpoints de metadatos de nube). Esta variable solo surte efecto en el contenedor principal `zitadel`, y requiere recrearlo (un simple reinicio no aplica una variable de entorno nueva). | ver columna Por defecto |
 
 #### `zitadel-login`
 
@@ -452,6 +462,14 @@ necesita mostrar el propio formulario de inicio de sesión.
   pero no el fichero), hay que vaciar la base de datos de Postgres por completo y volver a arrancar
   `zitadel` para que lo reintente desde cero — arreglar antes los permisos/la variable y solo
   reiniciar no cambia nada.
+- **Crear un Target de Actions V2 falla con `[invalid_argument] Errors.Target.DeniedURL`**: por
+  defecto Zitadel se niega a llamar a endpoints webhook en rangos de IP privados, como protección
+  SSRF — esto incluye toda tu red local (`192.168.0.0/16`). Si estás construyendo algo que llame de
+  vuelta a tu propia red (p.ej. un webhook propio de aprobación de login), pon la variable *HTTP
+  Client Deny List* de arriba — su valor por defecto aquí ya quita solo `192.168.0.0/16` de la
+  lista original de Zitadel, dejando intactos el resto de rangos protegidos (loopback, link-local,
+  endpoints de metadatos de nube). Esta variable solo surte efecto en el contenedor principal
+  `zitadel`, y requiere recrearlo (un simple reinicio no aplica una variable de entorno nueva).
 
 ### 💙 Apoya el proyecto
 
