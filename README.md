@@ -125,6 +125,7 @@ completely normal, version-independent way to make a template show up.
 | Require Password Change On First Login | Whether the built-in default admin account (`zitadel-admin@zitadel.<domain>` / `Password1!`) must set a new password the first time it logs in. Recommended: `true`. | `true` |
 | Login Client PAT Path (bootstrap) | **Don't touch.** The file path, inside the shared Bootstrap Volume, where ZITADEL writes the access token `zitadel-login` needs to function. | `/zitadel/bootstrap/login-client.pat` |
 | Login Client Machine Username/Name | **Don't touch.** Internal service-account identity ZITADEL creates for the login UI to authenticate as. | `login-client` |
+| Login Client PAT Expiration Date | **Don't leave empty.** A valid RFC3339 date the login-client token is valid until. Without this, ZITADEL silently skips writing the token file entirely — no error anywhere, `zitadel-login` just never works. The default is ~100 years out. | `2124-01-01T00:00:00Z` |
 | Login V2 Required / Base URI | `Required` is always `true` in v4 (kept visible, not meant to be edited). `Base URI` is the full public URL where the login pages live — build it from your own External Domain/Port/Secure above. | `https://sso.example.com/ui/v2/login/` |
 | OIDC Default Login/Logout URL V2 | Where OIDC clients get redirected to sign in / sign out. Same domain as above, different suffix. | `.../ui/v2/login/login?authRequest=`, `.../ui/v2/login/logout?post_logout_redirect=` |
 | SAML Default Login URL V2 | Same idea, for SAML clients (e.g. Zabbix). Only needed if you'll use SAML. | `.../ui/v2/login/login?samlRequest=` |
@@ -172,6 +173,21 @@ needs to show the actual sign-in form.
 - **`zitadel-login` can't read the token / stays unhealthy**: its Bootstrap Volume path must be
   the *exact* same host path as the `zitadel` container's Bootstrap Volume, and `zitadel` must have
   completed its first start (which is when the token file is written) before `zitadel-login` starts.
+- **`zitadel` logs `setup completed` with no errors, but the Bootstrap Volume folder stays
+  completely empty (no `login-client.pat` ever appears)**: two independent causes, check both.
+  1. **Folder permissions.** ZITADEL runs internally as UID 1000. If Unraid auto-created the
+     Bootstrap Volume folder on first start, it's likely owned by `root` or `nobody` without write
+     access for UID 1000 — the token write fails completely silently, nothing is logged anywhere.
+     Fix: on the Unraid host, `chown -R 1000:1000 <your bootstrap path>`.
+  2. **Missing PAT Expiration Date.** If *Login Client PAT Expiration Date* was left empty, ZITADEL
+     silently skips creating the token altogether, again with zero log output. Fix: set it (see the
+     reference table above).
+  Either way, **restarting the container alone will not fix this** — the entire first-instance
+  bootstrap (creating the admin user, the org, the login-client service account, and its token)
+  only ever runs once, the very first time against a genuinely empty database. If it already ran
+  once and failed partway (e.g. wrote the DB rows but not the file), you must wipe the Postgres
+  database clean and restart `zitadel` again for it to retry from scratch — fixing the
+  permissions/variable first, then just restarting, changes nothing.
 
 ### 💙 Support
 
@@ -305,6 +321,7 @@ versión de hacer que una plantilla aparezca.
 | Require Password Change On First Login | Si la cuenta de admin por defecto (`zitadel-admin@zitadel.<tu dominio>` / `Password1!`) debe fijar una contraseña nueva la primera vez que entra. Recomendado: `true`. | `true` |
 | Login Client PAT Path (bootstrap) | **No tocar.** La ruta del fichero, dentro del Bootstrap Volume compartido, donde Zitadel escribe el token que necesita `zitadel-login` para funcionar. | `/zitadel/bootstrap/login-client.pat` |
 | Login Client Machine Username/Name | **No tocar.** Identidad de cuenta de servicio interna que Zitadel crea para que la interfaz de login se autentique con ella. | `login-client` |
+| Login Client PAT Expiration Date | **No lo dejes vacío.** Una fecha válida en formato RFC3339 hasta la que es válido el token del login-client. Sin esto, Zitadel se salta en silencio la escritura del fichero del token — sin ningún error en ningún sitio, `zitadel-login` simplemente nunca funciona. El valor por defecto está a ~100 años vista. | `2124-01-01T00:00:00Z` |
 | Login V2 Required / Base URI | `Required` siempre es `true` en v4 (visible pero no pensado para editarse). `Base URI` es la URL pública completa donde viven las páginas de login — constrúyela con tu propio External Domain/Port/Secure de arriba. | `https://sso.example.com/ui/v2/login/` |
 | OIDC Default Login/Logout URL V2 | A dónde se redirige a los clientes OIDC para iniciar/cerrar sesión. Mismo dominio que arriba, distinto sufijo. | `.../ui/v2/login/login?authRequest=`, `.../ui/v2/login/logout?post_logout_redirect=` |
 | SAML Default Login URL V2 | La misma idea, para clientes SAML (p.ej. Zabbix). Solo hace falta si vas a usar SAML. | `.../ui/v2/login/login?samlRequest=` |
@@ -354,6 +371,24 @@ necesita mostrar el propio formulario de inicio de sesión.
   ser *exactamente* la misma ruta de host que la del contenedor `zitadel`, y `zitadel` debe haber
   completado su primer arranque (que es cuando escribe el fichero del token) antes de que arranque
   `zitadel-login`.
+- **`zitadel` registra `setup completed` sin errores, pero la carpeta del Bootstrap Volume se queda
+  completamente vacía (nunca aparece `login-client.pat`)**: dos causas independientes, comprueba
+  ambas.
+  1. **Permisos de la carpeta.** Zitadel corre internamente como UID 1000. Si Unraid creó
+     automáticamente la carpeta del Bootstrap Volume en el primer arranque, probablemente quedó
+     como propiedad de `root` o `nobody` sin permiso de escritura para el UID 1000 — la escritura
+     del token falla por completo en silencio, sin nada registrado en ningún sitio. Arreglo: en el
+     host de Unraid, `chown -R 1000:1000 <tu ruta de bootstrap>`.
+  2. **Falta la fecha de expiración del PAT.** Si *Login Client PAT Expiration Date* se dejó vacío,
+     Zitadel se salta por completo la creación del token, de nuevo sin ningún log. Arreglo: pon un
+     valor (ver la tabla de referencia de arriba).
+  En cualquiera de los dos casos, **reiniciar el contenedor por sí solo no lo arregla** — todo el
+  proceso de primera instancia (crear el usuario admin, la organización, la cuenta de servicio
+  login-client y su token) solo se ejecuta una vez, la primerísima vez, contra una base de datos
+  genuinamente vacía. Si ya se ejecutó una vez y falló a medias (p.ej. escribió las filas en la BD
+  pero no el fichero), hay que vaciar la base de datos de Postgres por completo y volver a arrancar
+  `zitadel` para que lo reintente desde cero — arreglar antes los permisos/la variable y solo
+  reiniciar no cambia nada.
 
 ### 💙 Apoya el proyecto
 
