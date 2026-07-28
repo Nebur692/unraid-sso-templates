@@ -7,7 +7,7 @@
   <MyIP/>
   <Shell>sh</Shell>
   <Privileged>false</Privileged>
-  <Support>https://github.com/Nebur692/unraid-zitadel-templates/issues</Support>
+  <Support>https://forums.unraid.net/topic/200036-zitadel-v4-unraid-templates-nebur692/</Support>
   <Project>https://github.com/zitadel/zitadel</Project>
   <Overview>ZITADEL is a self-hosted identity infrastructure platform: SSO (OIDC/SAML), MFA, and user management for your own apps and services.&#13;
 &#13;
