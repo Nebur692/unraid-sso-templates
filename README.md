@@ -41,6 +41,19 @@ Both were built directly from ZITADEL's own [reference docker-compose
 files](https://github.com/zitadel/zitadel/tree/main/deploy/compose), not guessed — the variable
 names and required values are taken straight from there.
 
+### 🧭 Deployment order
+
+**`zitadel` (core) always goes first, `zitadel-login` always second — never the other way round.**
+The core container writes a login token to a shared file the very first time it starts; the login
+container reads that same file to authenticate itself, so it has nothing to read if it starts
+first (it will just sit unhealthy). Postgres has to exist before either of them.
+
+```
+1. PostgreSQL (external, not part of this repo)
+2. zitadel        ← wait until its log says "setup completed"
+3. zitadel-login  ← only start this once step 2 finished
+```
+
 ### 📦 Installation
 
 The old dedicated "Template repositories" field under Docker settings was deprecated years ago in
@@ -78,6 +91,41 @@ completely normal, version-independent way to make a template show up.
    Volume** at the exact same host path you used for the `zitadel` container — this is how it
    reads the token the core container wrote on its first start.
 6. Start `zitadel-login` and confirm it comes up healthy.
+
+### ⚙️ Configuration reference
+
+#### `zitadel` (core)
+
+| Variable | What it's actually for | Example |
+|---|---|---|
+| Master Key | Encryption key for secrets stored in the database. Set once, **never** change it afterwards or you lose access to everything encrypted with it. Exactly 32 characters. | `openssl rand -base64 24 \| cut -c1-32` |
+| External Domain | The domain your *users* type into their browser — must match your reverse proxy's configured domain. | `sso.example.com` |
+| External Port | The *public-facing* port (what's after the domain from the outside), not the container's internal port. Almost always `443`. | `443` |
+| External Secure (HTTPS) | Tell ZITADEL whether the outside world reaches it over HTTPS. Keep `true` unless you're doing a plain-HTTP local test. | `true` |
+| TLS Enabled (container-internal) | Whether ZITADEL itself should terminate HTTPS *inside the container*. Leave `false` — your reverse proxy (NPM/Traefik/Caddy) should be the one handling certificates. | `false` |
+| Database Postgres Host/Port | Where to find your external Postgres. | `192.168.1.10`, `5432` |
+| Database Name | Which database inside Postgres ZITADEL uses. | `zitadel` |
+| Database Admin Username/Password | Credentials with rights to create the app role and database on first start. **If your Postgres container's `POSTGRES_USER` isn't the default `postgres`, put that custom username here instead** — see Troubleshooting. | `postgres` |
+| Database App Username/Password | The day-to-day, lower-privilege credentials ZITADEL creates and uses afterwards. | `zitadel` |
+| Require Password Change On First Login | Whether the built-in default admin account (`zitadel-admin@zitadel.<domain>` / `Password1!`) must set a new password the first time it logs in. Recommended: `true`. | `true` |
+| Login Client PAT Path (bootstrap) | **Don't touch.** The file path, inside the shared Bootstrap Volume, where ZITADEL writes the access token `zitadel-login` needs to function. | `/zitadel/bootstrap/login-client.pat` |
+| Login Client Machine Username/Name | **Don't touch.** Internal service-account identity ZITADEL creates for the login UI to authenticate as. | `login-client` |
+| Login V2 Required / Base URI | `Required` is always `true` in v4 (kept visible, not meant to be edited). `Base URI` is the full public URL where the login pages live — build it from your own External Domain/Port/Secure above. | `https://sso.example.com/ui/v2/login/` |
+| OIDC Default Login/Logout URL V2 | Where OIDC clients get redirected to sign in / sign out. Same domain as above, different suffix. | `.../ui/v2/login/login?authRequest=`, `.../ui/v2/login/logout?post_logout_redirect=` |
+| SAML Default Login URL V2 | Same idea, for SAML clients (e.g. Zabbix). Only needed if you'll use SAML. | `.../ui/v2/login/login?samlRequest=` |
+| Bootstrap Volume | A folder shared with `zitadel-login` (mounted read-only there) so it can read the token above. Both templates must point at the **exact same** host path. | `/mnt/user/appdata/zitadel/bootstrap` |
+| Web UI / API Port | Internal port. Put your reverse proxy in front — don't expose straight to the internet. | `8080` |
+
+#### `zitadel-login`
+
+| Variable | What it's actually for | Example |
+|---|---|---|
+| ZITADEL API URL | How this container reaches the `zitadel` core container internally — its LAN/container IP and port, **not** your public domain. | `http://192.168.1.50:8080` |
+| Public Base Path | The URL path this login UI is served under. Must match what your reverse proxy routes here. Leave as-is unless you know why you'd change it. | `/ui/v2/login` |
+| Service User Token File | **Don't touch.** Where inside this container it reads the token `zitadel` wrote. Must match the Bootstrap Volume path below. | `/zitadel/bootstrap/login-client.pat` |
+| Custom Request Headers | Tells the login app what Host/protocol to think it's being served as, since it's sitting behind a reverse proxy that already terminated HTTPS. Without this, cookies/redirects can break. | `Host:sso.example.com,X-Forwarded-Proto:https` |
+| Bootstrap Volume | Must be the **exact same host path** as the Bootstrap Volume in the `zitadel` template — this is how the token gets shared between the two containers. | `/mnt/user/appdata/zitadel/bootstrap` |
+| Login UI Port | Internal port. Your reverse proxy routes `/ui/v2/login/*` here (see below). | `3000` |
 
 ### ⚙️ Reverse proxy configuration (required)
 
@@ -155,6 +203,20 @@ Ambas se construyeron directamente a partir de los [docker-compose de referencia
 ZITADEL](https://github.com/zitadel/zitadel/tree/main/deploy/compose), no por suposición — los
 nombres de variable y los valores requeridos salen de ahí directamente.
 
+### 🧭 Orden de despliegue
+
+**`zitadel` (principal) siempre va primero, `zitadel-login` siempre segundo — nunca al revés.** El
+contenedor principal escribe un token de login en un fichero compartido la primerísima vez que
+arranca; el contenedor de login lee ese mismo fichero para autenticarse, así que no tiene nada que
+leer si arranca antes (se quedará simplemente unhealthy). Postgres tiene que existir antes que
+cualquiera de los dos.
+
+```
+1. PostgreSQL (externo, no incluido en este repo)
+2. zitadel        ← espera a que su log diga "setup completed"
+3. zitadel-login  ← arráncalo solo cuando el paso 2 haya terminado
+```
+
 ### 📦 Instalación
 
 El antiguo campo dedicado "Template repositories" de los ajustes de Docker quedó obsoleto hace años
@@ -193,6 +255,41 @@ versión de hacer que una plantilla aparezca.
    apuntando exactamente a la misma ruta de host que usaste en el contenedor `zitadel` — así es
    como lee el token que el contenedor principal escribió en su primer arranque.
 6. Arranca `zitadel-login` y confirma que queda healthy.
+
+### ⚙️ Referencia de configuración
+
+#### `zitadel` (principal)
+
+| Variable | Para qué sirve de verdad | Ejemplo |
+|---|---|---|
+| Master Key | Clave de cifrado de los secretos guardados en la base de datos. Se pone una vez y **nunca** se cambia después, o pierdes acceso a todo lo cifrado con ella. Exactamente 32 caracteres. | `openssl rand -base64 24 \| cut -c1-32` |
+| External Domain | El dominio que escriben tus *usuarios* en el navegador — debe coincidir con el dominio configurado en tu proxy inverso. | `sso.example.com` |
+| External Port | El puerto *de cara al público* (lo que va después del dominio, visto desde fuera), no el puerto interno del contenedor. Casi siempre `443`. | `443` |
+| External Secure (HTTPS) | Le dice a Zitadel si el mundo exterior le llega por HTTPS. Déjalo en `true` salvo que sea una prueba local en HTTP plano. | `true` |
+| TLS Enabled (container-internal) | Si Zitadel debe terminar el HTTPS él mismo *dentro del contenedor*. Déjalo en `false` — tu proxy inverso (NPM/Traefik/Caddy) es quien debe gestionar los certificados. | `false` |
+| Database Postgres Host/Port | Dónde encontrar tu Postgres externo. | `192.168.1.10`, `5432` |
+| Database Name | Qué base de datos dentro de Postgres usa Zitadel. | `zitadel` |
+| Database Admin Username/Password | Credenciales con permisos para crear el rol y la base de datos de la app en el primer arranque. **Si el `POSTGRES_USER` de tu contenedor de Postgres no es el `postgres` por defecto, pon aquí ese usuario personalizado** — ver Solución de problemas. | `postgres` |
+| Database App Username/Password | Las credenciales de uso diario, de menos privilegio, que Zitadel crea y usa después. | `zitadel` |
+| Require Password Change On First Login | Si la cuenta de admin por defecto (`zitadel-admin@zitadel.<tu dominio>` / `Password1!`) debe fijar una contraseña nueva la primera vez que entra. Recomendado: `true`. | `true` |
+| Login Client PAT Path (bootstrap) | **No tocar.** La ruta del fichero, dentro del Bootstrap Volume compartido, donde Zitadel escribe el token que necesita `zitadel-login` para funcionar. | `/zitadel/bootstrap/login-client.pat` |
+| Login Client Machine Username/Name | **No tocar.** Identidad de cuenta de servicio interna que Zitadel crea para que la interfaz de login se autentique con ella. | `login-client` |
+| Login V2 Required / Base URI | `Required` siempre es `true` en v4 (visible pero no pensado para editarse). `Base URI` es la URL pública completa donde viven las páginas de login — constrúyela con tu propio External Domain/Port/Secure de arriba. | `https://sso.example.com/ui/v2/login/` |
+| OIDC Default Login/Logout URL V2 | A dónde se redirige a los clientes OIDC para iniciar/cerrar sesión. Mismo dominio que arriba, distinto sufijo. | `.../ui/v2/login/login?authRequest=`, `.../ui/v2/login/logout?post_logout_redirect=` |
+| SAML Default Login URL V2 | La misma idea, para clientes SAML (p.ej. Zabbix). Solo hace falta si vas a usar SAML. | `.../ui/v2/login/login?samlRequest=` |
+| Bootstrap Volume | Una carpeta compartida con `zitadel-login` (montada de solo lectura ahí) para que pueda leer el token de arriba. Ambas plantillas deben apuntar a **exactamente la misma** ruta de host. | `/mnt/user/appdata/zitadel/bootstrap` |
+| Web UI / API Port | Puerto interno. Pon tu proxy inverso delante — no lo expongas directo a internet. | `8080` |
+
+#### `zitadel-login`
+
+| Variable | Para qué sirve de verdad | Ejemplo |
+|---|---|---|
+| ZITADEL API URL | Cómo llega este contenedor al contenedor principal `zitadel` internamente — su IP y puerto de LAN/contenedor, **no** tu dominio público. | `http://192.168.1.50:8080` |
+| Public Base Path | La ruta URL bajo la que se sirve esta interfaz de login. Debe coincidir con lo que enruta tu proxy inverso hacia aquí. Déjalo tal cual salvo que sepas por qué cambiarlo. | `/ui/v2/login` |
+| Service User Token File | **No tocar.** Dónde lee este contenedor, en su interior, el token que escribió `zitadel`. Debe coincidir con la ruta del Bootstrap Volume de abajo. | `/zitadel/bootstrap/login-client.pat` |
+| Custom Request Headers | Le dice a la app de login qué Host/protocolo debe creer que se le sirve, ya que está detrás de un proxy inverso que ya terminó el HTTPS. Sin esto, las cookies/redirecciones pueden romperse. | `Host:sso.example.com,X-Forwarded-Proto:https` |
+| Bootstrap Volume | Debe ser **exactamente la misma ruta de host** que el Bootstrap Volume de la plantilla `zitadel` — así es como se comparte el token entre los dos contenedores. | `/mnt/user/appdata/zitadel/bootstrap` |
+| Login UI Port | Puerto interno. Tu proxy inverso enruta `/ui/v2/login/*` aquí (ver abajo). | `3000` |
 
 ### ⚙️ Configuración del proxy inverso (obligatoria)
 
