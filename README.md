@@ -94,6 +94,21 @@ completely normal, version-independent way to make a template show up.
 
 ### ⚙️ Configuration reference
 
+> **Why do External Domain/Port/Secure and the four `*URLV2` fields repeat the same information?**
+> ZITADEL's own reference docker-compose builds those four URLs *automatically* from the
+> domain/port/scheme, using docker-compose's own variable-substitution syntax. Plain Unraid
+> templates have no equivalent — every `<Config>` field is independent static text, there's no way
+> for one field to reference another's value. So you fill in the same domain/port/scheme by hand,
+> pasted into 4 fixed patterns. Given `External Domain=sso.example.com`, `Port=443`, `Secure=true`:
+> ```
+> Login V2 Base URI:         https://sso.example.com:443/ui/v2/login/
+> OIDC Default Login URL V2:  https://sso.example.com:443/ui/v2/login/login?authRequest=
+> OIDC Default Logout URL V2: https://sso.example.com:443/ui/v2/login/logout?post_logout_redirect=
+> SAML Default Login URL V2:  https://sso.example.com:443/ui/v2/login/login?samlRequest=
+> ```
+> Just substitute your own domain/port/scheme into those same 4 patterns — nothing to reason
+> about, it's mechanical.
+
 #### `zitadel` (core)
 
 | Variable | What it's actually for | Example |
@@ -257,6 +272,22 @@ versión de hacer que una plantilla aparezca.
 6. Arranca `zitadel-login` y confirma que queda healthy.
 
 ### ⚙️ Referencia de configuración
+
+> **¿Por qué External Domain/Port/Secure y los cuatro campos `*URLV2` repiten la misma
+> información?** El docker-compose de referencia de Zitadel construye esas cuatro URLs
+> *automáticamente* a partir del dominio/puerto/esquema, usando la propia sintaxis de sustitución
+> de variables de docker-compose. Las plantillas normales de Unraid no tienen equivalente — cada
+> campo `<Config>` es texto estático independiente, no hay forma de que un campo referencie el
+> valor de otro. Así que rellenas a mano el mismo dominio/puerto/esquema, pegado en 4 patrones
+> fijos. Con `External Domain=sso.example.com`, `Port=443`, `Secure=true`:
+> ```
+> Login V2 Base URI:          https://sso.example.com:443/ui/v2/login/
+> OIDC Default Login URL V2:  https://sso.example.com:443/ui/v2/login/login?authRequest=
+> OIDC Default Logout URL V2: https://sso.example.com:443/ui/v2/login/logout?post_logout_redirect=
+> SAML Default Login URL V2:  https://sso.example.com:443/ui/v2/login/login?samlRequest=
+> ```
+> Solo hay que sustituir tu propio dominio/puerto/esquema en esos mismos 4 patrones — nada que
+> razonar, es mecánico.
 
 #### `zitadel` (principal)
 
