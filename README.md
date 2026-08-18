@@ -1,10 +1,10 @@
 <div align="center">
 
-# Unraid Zitadel Templates
+# Unraid SSO Templates
 
-*Working Unraid Community Applications templates for ZITADEL v4 — core + the login UI it actually needs*
+*Working Unraid Community Applications templates for a self-hosted SSO stack: ZITADEL v4 (core + the login UI it actually needs) and oauth2-proxy*
 
-![Release](https://img.shields.io/github/v/release/Nebur692/unraid-zitadel-templates?label=release&color=blue)
+![Release](https://img.shields.io/github/v/release/Nebur692/unraid-sso-templates?label=release&color=blue)
 [![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](LICENSE)
 [![GitHub Sponsors](https://img.shields.io/badge/Sponsor-30363D?logo=githubsponsors&logoColor=EA4AAA)](https://github.com/sponsors/Nebur692)
 [![Ko-fi](https://ko-fi.com/img/githubbutton_sm.svg)](https://ko-fi.com/nebur69265723)
@@ -69,10 +69,12 @@ completely normal, version-independent way to make a template show up.
    field below if you do.
 2. Download both template files into that folder, e.g. via the Unraid terminal:
    ```bash
-   curl -o /boot/config/plugins/dockerMan/templates-user/unraid-zitadel-templates_zitadel.xml \
-     https://raw.githubusercontent.com/Nebur692/unraid-zitadel-templates/main/zitadel/zitadel.xml
-   curl -o /boot/config/plugins/dockerMan/templates-user/unraid-zitadel-templates_zitadel-login.xml \
-     https://raw.githubusercontent.com/Nebur692/unraid-zitadel-templates/main/zitadel-login/zitadel-login.xml
+   curl -o /boot/config/plugins/dockerMan/templates-user/unraid-sso-templates_zitadel.xml \
+     https://raw.githubusercontent.com/Nebur692/unraid-sso-templates/main/zitadel/zitadel.xml
+   curl -o /boot/config/plugins/dockerMan/templates-user/unraid-sso-templates_zitadel-login.xml \
+     https://raw.githubusercontent.com/Nebur692/unraid-sso-templates/main/zitadel-login/zitadel-login.xml
+   curl -o /boot/config/plugins/dockerMan/templates-user/unraid-sso-templates_oauth2-proxy.xml \
+     https://raw.githubusercontent.com/Nebur692/unraid-sso-templates/main/oauth2-proxy/oauth2-proxy.xml
    ```
    (Use any filename you like — Unraid doesn't care, it scans the whole folder.)
 3. **Docker → Add Container**, open the **Template** dropdown at the top — `zitadel` and
@@ -229,6 +231,76 @@ needs to show the actual sign-in form.
   endpoints) intact. This variable only takes effect on the `zitadel` core container, and requires
   recreating it (a plain restart won't pick up a newly added environment variable).
 
+### 🔐 `oauth2-proxy` — putting that login in front of anything else
+
+The third template in this repository isn't part of ZITADEL: it's
+[**oauth2-proxy**](https://oauth2-proxy.github.io/oauth2-proxy/), the piece that lets you reuse the
+identity provider you just deployed to protect web apps that have **no login of their own** — a
+router page, a monitoring dashboard, an old admin panel. Your reverse proxy asks oauth2-proxy on
+every request whether the visitor is signed in; if not, the visitor goes to your provider and only
+comes back once authenticated.
+
+A template for oauth2-proxy already existed on Community Applications and it works, but it exposes
+**no settings at all** — every option has to go into a config file by hand. This one exposes each
+option as its own field, with an explanation of what it does and why it matters.
+
+**One container, many sites.** Leave *Redirect URL* as a path (`/oauth2/callback`) instead of a full
+address: oauth2-proxy then derives the absolute URL from the host of each request, so the same
+container can guard any number of domains. Give *Cookie domains* a leading dot (`.example.com`) and
+one login covers every protected site under it.
+*(Do not use the `--relative-redirect-url` flag to achieve this — it sends a literally relative
+`redirect_uri`, which standards-compliant providers reject.)*
+
+**Nginx Proxy Manager**, which has no `auth_request` field in its UI, still supports this: anything
+you put in a host's *Advanced* tab is inserted at server level, and NPM skips its own default
+`location /` as soon as your config declares one. So this is all it takes, per protected host:
+
+```nginx
+location /oauth2/ {
+    proxy_pass         http://OAUTH2_PROXY_IP:4180;
+    proxy_set_header   Host              $host;
+    proxy_set_header   X-Real-IP         $remote_addr;
+    proxy_set_header   X-Forwarded-For   $proxy_add_x_forwarded_for;
+    proxy_set_header   X-Forwarded-Proto $x_forwarded_proto;
+}
+
+location = /oauth2/auth {
+    internal;
+    proxy_pass              http://OAUTH2_PROXY_IP:4180;
+    proxy_set_header        Host              $host;
+    proxy_set_header        X-Real-IP         $remote_addr;
+    proxy_set_header        X-Forwarded-For   $proxy_add_x_forwarded_for;
+    proxy_set_header        X-Forwarded-Proto $x_forwarded_proto;
+    proxy_set_header        Content-Length    "";
+    proxy_pass_request_body off;
+}
+
+location @oauth2_signin {
+    return 302 https://$host/oauth2/start?rd=$request_uri;
+}
+
+location / {
+    auth_request /oauth2/auth;
+    error_page 401 = @oauth2_signin;
+
+    proxy_set_header Upgrade $http_upgrade;
+    proxy_set_header Connection $http_connection;
+    proxy_http_version 1.1;
+
+    include conf.d/include/proxy.conf;
+}
+```
+
+Register `https://that-site/oauth2/callback` as a redirect URI at your provider for **each** host
+you protect, and set the visitor's e-mail in the allow-list file. Two things worth knowing before
+you rely on it:
+
+- **Everyone who gets in, gets into everything** behind the same instance. For a different audience
+  (family, guests) run a second container with its own cookie name, its own application at the
+  provider and its own allow-list.
+- **Don't put it in front of machine traffic** — monitoring pollers, mobile apps, webhooks, APIs.
+  It is a gate for browsers; anything non-interactive will simply be turned away at the redirect.
+
 ### 💙 Support
 
 None of this would be possible without the community's support. If this project has been useful to
@@ -304,10 +376,12 @@ versión de hacer que una plantilla aparezca.
    de la plantilla `zitadel` más abajo si lo haces.
 2. Descarga ambas plantillas a esa carpeta, por ejemplo desde la terminal de Unraid:
    ```bash
-   curl -o /boot/config/plugins/dockerMan/templates-user/unraid-zitadel-templates_zitadel.xml \
-     https://raw.githubusercontent.com/Nebur692/unraid-zitadel-templates/main/zitadel/zitadel.xml
-   curl -o /boot/config/plugins/dockerMan/templates-user/unraid-zitadel-templates_zitadel-login.xml \
-     https://raw.githubusercontent.com/Nebur692/unraid-zitadel-templates/main/zitadel-login/zitadel-login.xml
+   curl -o /boot/config/plugins/dockerMan/templates-user/unraid-sso-templates_zitadel.xml \
+     https://raw.githubusercontent.com/Nebur692/unraid-sso-templates/main/zitadel/zitadel.xml
+   curl -o /boot/config/plugins/dockerMan/templates-user/unraid-sso-templates_zitadel-login.xml \
+     https://raw.githubusercontent.com/Nebur692/unraid-sso-templates/main/zitadel-login/zitadel-login.xml
+   curl -o /boot/config/plugins/dockerMan/templates-user/unraid-sso-templates_oauth2-proxy.xml \
+     https://raw.githubusercontent.com/Nebur692/unraid-sso-templates/main/oauth2-proxy/oauth2-proxy.xml
    ```
    (El nombre del fichero da igual — Unraid escanea toda la carpeta.)
 3. **Docker → Add Container**, abre el desplegable **Template** de arriba — `zitadel` y
@@ -470,6 +544,78 @@ necesita mostrar el propio formulario de inicio de sesión.
   lista original de Zitadel, dejando intactos el resto de rangos protegidos (loopback, link-local,
   endpoints de metadatos de nube). Esta variable solo surte efecto en el contenedor principal
   `zitadel`, y requiere recrearlo (un simple reinicio no aplica una variable de entorno nueva).
+
+### 🔐 `oauth2-proxy` — poner ese mismo login delante de cualquier otra cosa
+
+La tercera plantilla de este repositorio no forma parte de ZITADEL: es
+[**oauth2-proxy**](https://oauth2-proxy.github.io/oauth2-proxy/), la pieza que permite reutilizar el
+proveedor de identidad que acabas de desplegar para proteger aplicaciones web que **no tienen login
+propio** — la página de un router, un panel de monitorización, un administrador antiguo. Tu proxy
+inverso le pregunta a oauth2-proxy, en cada petición, si el visitante ha iniciado sesión; si no, lo
+manda a tu proveedor y solo vuelve una vez autenticado.
+
+En Community Applications ya había una plantilla de oauth2-proxy, y funciona, pero **no expone ni un
+solo ajuste**: todo hay que escribirlo a mano en un fichero de configuración. Esta expone cada
+opción como un campo, explicando qué hace y por qué importa.
+
+**Un contenedor, muchas webs.** Deja *Redirect URL* como una ruta (`/oauth2/callback`) en vez de una
+dirección completa: oauth2-proxy deduce entonces la URL absoluta a partir del dominio de cada
+petición, así que el mismo contenedor vale para cuantos dominios quieras. Pon un punto delante en
+*Cookie domains* (`.ejemplo.com`) y un solo inicio de sesión abre todas las webs protegidas.
+*(No uses el flag `--relative-redirect-url` para esto: manda un `redirect_uri` literalmente
+relativo, que los proveedores que cumplen el estándar rechazan.)*
+
+**Nginx Proxy Manager**, que no tiene ningún campo de `auth_request` en su interfaz, lo admite de
+todos modos: lo que escribas en la pestaña *Advanced* de un host se inserta a nivel de servidor, y
+NPM se salta su propio `location /` en cuanto tu configuración declara uno. Con esto basta, en cada
+web protegida:
+
+```nginx
+location /oauth2/ {
+    proxy_pass         http://IP_DE_OAUTH2_PROXY:4180;
+    proxy_set_header   Host              $host;
+    proxy_set_header   X-Real-IP         $remote_addr;
+    proxy_set_header   X-Forwarded-For   $proxy_add_x_forwarded_for;
+    proxy_set_header   X-Forwarded-Proto $x_forwarded_proto;
+}
+
+location = /oauth2/auth {
+    internal;
+    proxy_pass              http://IP_DE_OAUTH2_PROXY:4180;
+    proxy_set_header        Host              $host;
+    proxy_set_header        X-Real-IP         $remote_addr;
+    proxy_set_header        X-Forwarded-For   $proxy_add_x_forwarded_for;
+    proxy_set_header        X-Forwarded-Proto $x_forwarded_proto;
+    proxy_set_header        Content-Length    "";
+    proxy_pass_request_body off;
+}
+
+location @oauth2_signin {
+    return 302 https://$host/oauth2/start?rd=$request_uri;
+}
+
+location / {
+    auth_request /oauth2/auth;
+    error_page 401 = @oauth2_signin;
+
+    proxy_set_header Upgrade $http_upgrade;
+    proxy_set_header Connection $http_connection;
+    proxy_http_version 1.1;
+
+    include conf.d/include/proxy.conf;
+}
+```
+
+Registra `https://esa-web/oauth2/callback` como redirect URI en tu proveedor para **cada** web que
+protejas, y añade el correo del visitante al fichero de la lista blanca. Dos cosas que conviene
+saber antes de confiarle nada:
+
+- **Quien entra, entra en todo** lo que haya detrás de esa misma instancia. Para otro público
+  (familia, invitados) levanta un segundo contenedor con su propio nombre de cookie, su propia
+  aplicación en el proveedor y su propia lista blanca.
+- **No lo pongas delante de tráfico de máquinas** — sondas de monitorización, apps móviles,
+  webhooks, APIs. Es una puerta para navegadores; cualquier cosa no interactiva se quedará fuera en
+  la redirección.
 
 ### 💙 Apoya el proyecto
 
