@@ -70,11 +70,11 @@ completely normal, version-independent way to make a template show up.
 2. Download both template files into that folder, e.g. via the Unraid terminal:
    ```bash
    curl -o /boot/config/plugins/dockerMan/templates-user/unraid-sso-templates_zitadel.xml \
-     https://raw.githubusercontent.com/Nebur692/unraid-sso-templates/main/zitadel/zitadel.xml
+     https://raw.githubusercontent.com/Nebur692/unraid-community-apps/main/templates/zitadel.xml
    curl -o /boot/config/plugins/dockerMan/templates-user/unraid-sso-templates_zitadel-login.xml \
-     https://raw.githubusercontent.com/Nebur692/unraid-sso-templates/main/zitadel-login/zitadel-login.xml
+     https://raw.githubusercontent.com/Nebur692/unraid-community-apps/main/templates/zitadel-login.xml
    curl -o /boot/config/plugins/dockerMan/templates-user/unraid-sso-templates_oauth2-proxy.xml \
-     https://raw.githubusercontent.com/Nebur692/unraid-sso-templates/main/oauth2-proxy/oauth2-proxy.xml
+     https://raw.githubusercontent.com/Nebur692/unraid-community-apps/main/templates/oauth2-proxy.xml
    ```
    (Use any filename you like — Unraid doesn't care, it scans the whole folder.)
 3. **Docker → Add Container**, open the **Template** dropdown at the top — `zitadel` and
@@ -84,7 +84,7 @@ completely normal, version-independent way to make a template show up.
    `*_LOGINURLV2`/`LOGINV2_BASEURI` variables (derived from your External Domain/Port).
    *(If you'd rather not touch the terminal, you can instead pick Repository `ghcr.io/zitadel/zitadel:latest`
    manually and add each variable/port/path yourself, reading
-   [`zitadel/zitadel.xml`](zitadel/zitadel.xml) as reference — slower, but works the same.)*
+   [`zitadel.xml`](https://github.com/Nebur692/unraid-community-apps/blob/main/templates/zitadel.xml) as reference — slower, but works the same.)*
 4. Start it, and confirm the container's log shows `setup completed` with no errors before
    continuing.
 5. **Docker → Add Container** again, pick the `zitadel-login` template from the dropdown. Fill in
@@ -377,11 +377,11 @@ versión de hacer que una plantilla aparezca.
 2. Descarga ambas plantillas a esa carpeta, por ejemplo desde la terminal de Unraid:
    ```bash
    curl -o /boot/config/plugins/dockerMan/templates-user/unraid-sso-templates_zitadel.xml \
-     https://raw.githubusercontent.com/Nebur692/unraid-sso-templates/main/zitadel/zitadel.xml
+     https://raw.githubusercontent.com/Nebur692/unraid-community-apps/main/templates/zitadel.xml
    curl -o /boot/config/plugins/dockerMan/templates-user/unraid-sso-templates_zitadel-login.xml \
-     https://raw.githubusercontent.com/Nebur692/unraid-sso-templates/main/zitadel-login/zitadel-login.xml
+     https://raw.githubusercontent.com/Nebur692/unraid-community-apps/main/templates/zitadel-login.xml
    curl -o /boot/config/plugins/dockerMan/templates-user/unraid-sso-templates_oauth2-proxy.xml \
-     https://raw.githubusercontent.com/Nebur692/unraid-sso-templates/main/oauth2-proxy/oauth2-proxy.xml
+     https://raw.githubusercontent.com/Nebur692/unraid-community-apps/main/templates/oauth2-proxy.xml
    ```
    (El nombre del fichero da igual — Unraid escanea toda la carpeta.)
 3. **Docker → Add Container**, abre el desplegable **Template** de arriba — `zitadel` y
@@ -391,7 +391,7 @@ versión de hacer que una plantilla aparezca.
    y las cuatro variables `*_LOGINURLV2`/`LOGINV2_BASEURI` (derivadas de tu External Domain/Port).
    *(Si prefieres no tocar la terminal, también puedes elegir Repository
    `ghcr.io/zitadel/zitadel:latest` a mano y añadir cada variable/puerto/ruta tú mismo, usando
-   [`zitadel/zitadel.xml`](zitadel/zitadel.xml) como referencia — más lento, pero funciona igual.)*
+   [`zitadel.xml`](https://github.com/Nebur692/unraid-community-apps/blob/main/templates/zitadel.xml) como referencia — más lento, pero funciona igual.)*
 4. Arráncalo, y confirma que el log del contenedor muestra `setup completed` sin errores antes de
    continuar.
 5. **Docker → Add Container** otra vez, elige la plantilla `zitadel-login` del desplegable.
